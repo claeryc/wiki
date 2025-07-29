@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect
+from django import forms
 import markdown
 
 from . import util
@@ -45,3 +46,34 @@ def search(request):
         })
     else:
         return redirect("index")
+    
+class NewPageForm(forms.Form):
+    title = forms.CharField(label="Title")
+    content = forms.CharField(label="Markdown Content", widget=forms.Textarea)
+
+def new_page(request):
+    if request.method == "POST":
+        form = NewPageForm(request.POST)
+        if form.is_valid():
+            title = form.cleaned_data["title"]
+            content = form.cleaned_data["content"]
+
+            if title.lower() in [entry.lower() for entry in util.list_entries()]:
+                return render(request, "encyclopedia/new_page.html", {
+                    "form": form,
+                    "error": "An entry with this title already exists."
+                })
+
+            util.save_entry(title, content)
+            html_content = convertMdHTML(title)
+            return render(request, "encyclopedia/entry.html", {
+                "title": title,
+                "content": html_content
+            })
+
+    else:
+        form = NewPageForm()
+
+    return render(request, "encyclopedia/new_page.html", {
+        "form": form
+    })
