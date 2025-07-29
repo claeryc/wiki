@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect
 from django import forms
 import markdown
+import random
 
 from . import util
 
@@ -21,7 +22,9 @@ def convertMdHTML(title):
 def entry(request, title):
     html_content = convertMdHTML(title)
     if html_content == None:
-        return render(request, "encyclopedia/error.html")
+        return render(request, "encyclopedia/error.html", {
+            "message": f"The entry '{title}' was not found."
+        })
     else:
         return render(request, "encyclopedia/entry.html", {
             "title": title,
@@ -77,3 +80,20 @@ def new_page(request):
     return render(request, "encyclopedia/new_page.html", {
         "form": form
     })
+
+def edit(request, title):
+    if request.method == "POST":
+        content = request.POST["content"]
+        util.save_entry(title, content)
+        return redirect("entry", title=title)
+    
+    content = util.get_entry(title)
+    return render(request, "encyclopedia/edit.html", {
+        "title": title,
+        "content": content
+    })
+
+def random_page(request):
+    entries = util.list_entries()
+    random_entry = random.choice(entries)
+    return redirect("entry", title=random_entry)
